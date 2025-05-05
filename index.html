@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data Visualization</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #111;
+            padding: 10px;
+            height: 100vh;
+            overflow: hidden;
+            color: #eee;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 20px);
+            gap: 5px;
+        }
+        
+        .market-section {
+            flex: 1;
+            background-color: #0c0c0c;
+            border: 1px solid #333;
+            border-radius: 2px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        h2 {
+            color: #ff9800;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        /* Input Section */
+        .input-section {
+            background-color: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 2px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .input-section h3 {
+            font-size: 14px;
+            color: #4dabf7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        
+        /* Output Section */
+        .output-section {
+            background-color: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 2px;
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .output-section h3 {
+            font-size: 14px;
+            color: #4dabf7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        
+        /* Chart specific styling */
+        .chart-container {
+            width: 100%;
+            height: 300px; /* Fixed height */
+            margin-bottom: 10px;
+        }
+        
+        .chart {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #333;
+            border-radius: 2px;
+            position: relative;
+            background-color: #0c0c0c;
+        }
+        
+        .chart-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-style: italic;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .control-label {
+            font-weight: bold;
+            color: #aaa;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        /* Client Input Color */
+        .client-input {
+            background-color: #1c1c1c;
+            padding: 4px;
+            border-radius: 2px;
+            border: 1px solid #333;
+        }
+        
+        /* Backend Output Color */
+        .backend-output {
+            background-color: #192428;
+            padding: 6px;
+            border-radius: 2px;
+            min-height: 30px;
+            margin-bottom: 8px;
+            border: 1px solid #234850;
+            color: #4caf50;
+            font-family: 'Courier New', monospace;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #444;
+            border-radius: 2px;
+            background-color: #222;
+            font-size: 12px;
+            color: #ddd;
+        }
+        
+        .yes-no {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .yes-no label {
+            flex: 1;
+            padding: 4px 8px;
+            cursor: pointer;
+            border: 1px solid #444;
+            background-color: #222;
+            border-radius: 2px;
+            transition: all 0.2s;
+            font-size: 12px;
+            color: #ddd;
+            text-align: center;
+        }
+
+        .yes-no input[type="radio"] {
+            display: none;
+        }
+
+        .yes-no input[type="radio"]:checked + label {
+            background-color: #0063cc;
+            color: white;
+            border-color: #0063cc;
+        }
+        
+        .trade-section {
+            margin-top: 10px;
+        }
+        
+        .trade-section h3 {
+            margin-bottom: 8px;
+            color: #4dabf7;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .trade-table th, .trade-table td {
+            border: 1px solid #333;
+            padding: 5px;
+            text-align: left;
+        }
+        
+        .trade-table th {
+            background-color: #222;
+            color: #4dabf7;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        
+        .metrics-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Bloomberg Terminal specific styling */
+        input:focus, select:focus {
+            outline: none;
+            border-color: #0063cc;
+        }
+
+        /* Make the scrollbars match Bloomberg */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* Terminal-like blinking cursor effect for placeholders */
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        input::placeholder {
+            color: #555;
+        }
+
+        select, input, .backend-output {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* Submit button styling */
+        .submit-btn {
+            background-color: #0063cc;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 8px;
+            transition: background-color 0.2s;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .submit-btn:active {
+            background-color: #004494;
+        }
+
+        /* Form styling */
+        form {
+            width: 100%;
+        }
+
+        /* Flash messages */
+        .flash-messages {
+            margin: 10px 0;
+            list-style: none;
+        }
+
+        .flash-message {
+            background-color: rgba(0, 99, 204, 0.2);
+            border-left: 3px solid #0063cc;
+            padding: 8px;
+            margin-bottom: 5px;
+            color: #fff;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul class="flash-messages">
+        {% for message in messages %}
+        <li class="flash-message">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <!-- Kalshi Section -->
+        <div class="market-section" id="kalshi-section">
+            <h2>KALSHI</h2>
+            
+            <!-- Input Section -->
+            <div class="input-section">
+                <h3>Inputs</h3>
+                <form id="kalshi-input-form" action="{{ url_for('process_kalshi_input') }}" method="post">
+                    <div class="controls">
+                        <div class="control-group">
+                            <div class="control-label">Market Select</div>
+                            <div class="client-input">
+                                <select id="kalshi-player-select" name="kalshi-player">
+                                    <option value="">Select Market</option>
+                                    <option value="player1">Player 1</option>
+                                    <option value="player2">Player 2</option>
+                                    <option value="player3">Player 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Yes/No Select</div>
+                            <div class="client-input">
+                                <div class="yes-no">
+                                    <input type="radio" id="kalshi-yes" name="kalshi-choice" value="yes">
+                                    <label for="kalshi-yes">Yes</label>
+                                    <input type="radio" id="kalshi-no" name="kalshi-choice" value="no">
+                                    <label for="kalshi-no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Prediction Market</div>
+                            <div class="client-input">
+                                <select id="kalshi-prediction-market" name="kalshi-prediction">
+                                    <option value="">Select Prediction Market</option>
+                                    <option value="market1">Market 1</option>
+                                    <option value="market2">Market 2</option>
+                                    <option value="market3">Market 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Choose Visualization</div>
+                            <div class="client-input">
+                                <select id="kalshi-algo-select" name="kalshi-algo">
+                                    <option value="">Select Visualization</option>
+                                    <option value="algo1">Algorithm 1</option>
+                                    <option value="algo2">Algorithm 2</option>
+                                    <option value="algo3">Algorithm 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">Apply</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Output Section -->
+            <div class="output-section">
+                <h3>Outputs</h3>
+                
+                <div class="chart-container">
+                    <div class="chart">
+                        <div class="chart-placeholder">Kalshi Chart will appear here</div>
+                    </div>
+                </div>
+                
+                <div class="metrics-container">
+                    <div class="control-group">
+                        <div class="control-label">Volume</div>
+                        <div class="backend-output" id="kalshi-volume">{{ kalshi_data.volume }}</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="control-label">Bid-Ask Spread</div>
+                        <div class="backend-output" id="kalshi-bid-ask-spread">{{ kalshi_data.bid_ask }}</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="control-label">Order/Volume</div>
+                        <div class="backend-output" id="kalshi-order-volume">{{ kalshi_data.order_volume }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trade Section -->
+            <div class="trade-section">
+                <h3>Trade Kalshi</h3>
+                <form id="kalshi-trade-form" action="{{ url_for('process_kalshi_trade') }}" method="post">
+                    <table class="trade-table">
+                        <thead>
+                            <tr>
+                                <th># of contracts</th>
+                                <th>Market Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="client-input">
+                                        <input type="number" id="kalshi-contracts" name="kalshi-contracts" placeholder="# of contracts">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="client-input">
+                                        <select id="kalshi-market-details" name="kalshi-market-details">
+                                            <option value="">Select Market</option>
+                                            <option value="market1">Market 1</option>
+                                            <option value="market2">Market 2</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="client-input">
+                                        <div class="yes-no">
+                                            <input type="radio" id="kalshi-trade-yes-opt" name="kalshi-trade-choice" value="yes">
+                                            <label for="kalshi-trade-yes-opt">Yes</label>
+                                            <input type="radio" id="kalshi-trade-no-opt" name="kalshi-trade-choice" value="no">
+                                            <label for="kalshi-trade-no-opt">No</label>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="client-input">
+                                        <select id="kalshi-trade-player" name="kalshi-trade-player">
+                                            <option value="">Select Player</option>
+                                            <option value="player1">Player 1</option>
+                                            <option value="player2">Player 2</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="submit" class="submit-btn">Execute Trade</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Polymarket Section -->
+        <div class="market-section" id="polymarket-section">
+            <h2>POLYMARKET</h2>
+            
+            <!-- Input Section -->
+            <div class="input-section">
+                <h3>Inputs</h3>
+                <form id="poly-input-form" action="{{ url_for('process_poly_input') }}" method="post">
+                    <div class="controls">
+                        <div class="control-group">
+                            <div class="control-label">Market Select</div>
+                            <div class="client-input">
+                                <select id="poly-player-select" name="poly-player">
+                                    <option value="">Select Market</option>
+                                    <option value="player1">Player 1</option>
+                                    <option value="player2">Player 2</option>
+                                    <option value="player3">Player 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Yes/No Select</div>
+                            <div class="client-input">
+                                <div class="yes-no">
+                                    <input type="radio" id="poly-yes" name="poly-choice" value="yes">
+                                    <label for="poly-yes">Yes</label>
+                                    <input type="radio" id="poly-no" name="poly-choice" value="no">
+                                    <label for="poly-no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Prediction Market</div>
+                            <div class="client-input">
+                                <select id="poly-prediction-market" name="poly-prediction">
+                                    <option value="">Select Prediction Market</option>
+                                    <option value="market1">Market 1</option>
+                                    <option value="market2">Market 2</option>
+                                    <option value="market3">Market 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Choose Visualization</div>
+                            <div class="client-input">
+                                <select id="poly-algo-select" name="poly-algo">
+                                    <option value="">Select Visualization</option>
+                                    <option value="algo1">Algorithm 1</option>
+                                    <option value="algo2">Algorithm 2</option>
+                                    <option value="algo3">Algorithm 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">Apply</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Output Section -->
+            <div class="output-section">
+                <h3>Outputs</h3>
+                
+                <div class="chart-container">
+                    <div class="chart">
+                        <div class="chart-placeholder">Polymarket Chart will appear here</div>
+                    </div>
+                </div>
+                
+                <div class="metrics-container">
+                    <div class="control-group">
+                        <div class="control-label">Volume</div>
+                        <div class="backend-output" id="poly-volume">{{ poly_data.volume }}</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="control-label">Bid-Ask Spread</div>
+                        <div class="backend-output" id="poly-bid-ask-spread">{{ poly_data.bid_ask }}</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="control-label">Order/Volume</div>
+                        <div class="backend-output" id="poly-order-volume">{{ poly_data.order_volume }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trade Section -->
+            <div class="trade-section">
+                <h3>Trade Polymarket</h3>
+                <form id="poly-trade-form" action="{{ url_for('process_poly_trade') }}" method="post">
+                    <table class="trade-table">
+                        <thead>
+                            <tr>
+                                <th># of contracts</th>
+                                <th>Market Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="client-input">
+                                        <input type="number" id="poly-contracts" name="poly-contracts" placeholder="# of contracts">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="client-input">
+                                        <select id="poly-market-details" name="poly-market-details">
+                                            <option value="">Select Market</option>
+                                            <option value="market1">Market 1</option>
+                                            <option value="market2">Market 2</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="client-input">
+                                        <div class="yes-no">
+                                            <input type="radio" id="poly-trade-yes-opt" name="poly-trade-choice" value="yes">
+                                            <label for="poly-trade-yes-opt">Yes</label>
+                                            <input type="radio" id="poly-trade-no-opt" name="poly-trade-choice" value="no">
+                                            <label for="poly-trade-no-opt">No</label>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="client-input">
+                                        <select id="poly-trade-player" name="poly-trade-player">
+                                            <option value="">Select Player</option>
+                                            <option value="player1">Player 1</option>
+                                            <option value="player2">Player 2</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="submit" class="submit-btn">Execute Trade</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
