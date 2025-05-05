@@ -311,16 +311,6 @@
     </style>
 </head>
 <body>
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul class="flash-messages">
-        {% for message in messages %}
-        <li class="flash-message">{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
 
     <div class="container">
         <!-- Kalshi Section -->
@@ -330,20 +320,18 @@
             <!-- Input Section -->
             <div class="input-section">
                 <h3>Inputs</h3>
-                <form id="kalshi-input-form" action="{{ url_for('process_kalshi_input') }}" method="post">
+                <form id="kalshi-input-form" method="post">
                     <div class="controls">
                         <div class="control-group">
                             <div class="control-label">Market Select</div>
                             <div class="client-input">
-                                <select id="kalshi-player-select" name="kalshi-player">
+                                <select id="kalshi-market" name="select-market">
                                     <option value="">Select Market</option>
-                                    <option value="player1">Player 1</option>
-                                    <option value="player2">Player 2</option>
-                                    <option value="player3">Player 3</option>
+                                    <option value="nba-west">NBA West</option>
                                 </select>
                             </div>
                         </div>
-                        
+                        <!--
                         <div class="control-group">
                             <div class="control-label">Yes/No Select</div>
                             <div class="client-input">
@@ -379,8 +367,8 @@
                                 </select>
                             </div>
                         </div>
-                        
-                        <button type="submit" class="submit-btn">Apply</button>
+                        -->
+                        <button type="submit" name="submit-kalshi" class="submit-btn">Apply</button>
                     </div>
                 </form>
             </div>
@@ -392,10 +380,15 @@
                 <div class="chart-container">
                     <div class="chart">
                         <div class="chart-placeholder">Kalshi Chart will appear here</div>
+                        {% if kalshi_url %}
+                        <h2>Generated Plot:</h2>
+                        <img src="{{ kalshi_url }}" alt="Generated Plot">
+                        {% endif %}
                     </div>
                 </div>
                 
                 <div class="metrics-container">
+                    {#<!--
                     <div class="control-group">
                         <div class="control-label">Volume</div>
                         <div class="backend-output" id="kalshi-volume">{{ kalshi_data.volume }}</div>
@@ -410,10 +403,13 @@
                         <div class="control-label">Order/Volume</div>
                         <div class="backend-output" id="kalshi-order-volume">{{ kalshi_data.order_volume }}</div>
                     </div>
+                -->#}
                 </div>
             </div>
             
             <!-- Trade Section -->
+
+            {#<!--
             <div class="trade-section">
                 <h3>Trade Kalshi</h3>
                 <form id="kalshi-trade-form" action="{{ url_for('process_kalshi_trade') }}" method="post">
@@ -467,6 +463,7 @@
                     <button type="submit" class="submit-btn">Execute Trade</button>
                 </form>
             </div>
+            -->#}
         </div>
         
         <!-- Polymarket Section -->
@@ -476,20 +473,18 @@
             <!-- Input Section -->
             <div class="input-section">
                 <h3>Inputs</h3>
-                <form id="poly-input-form" action="{{ url_for('process_poly_input') }}" method="post">
+                <form id="poly-input-form" method="post">
                     <div class="controls">
                         <div class="control-group">
                             <div class="control-label">Market Select</div>
                             <div class="client-input">
-                                <select id="poly-player-select" name="poly-player">
+                                <select id="polymarket_market" name="polymarket_market">
                                     <option value="">Select Market</option>
-                                    <option value="player1">Player 1</option>
-                                    <option value="player2">Player 2</option>
-                                    <option value="player3">Player 3</option>
+                                    <option value="nba-west">NBA West</option>
                                 </select>
                             </div>
                         </div>
-                        
+                        {#<!--
                         <div class="control-group">
                             <div class="control-label">Yes/No Select</div>
                             <div class="client-input">
@@ -525,8 +520,8 @@
                                 </select>
                             </div>
                         </div>
-                        
-                        <button type="submit" class="submit-btn">Apply</button>
+                        -->#}
+                        <button type="submit" name="submit-poly" class="submit-btn">Apply</button>
                     </div>
                 </form>
             </div>
@@ -538,9 +533,13 @@
                 <div class="chart-container">
                     <div class="chart">
                         <div class="chart-placeholder">Polymarket Chart will appear here</div>
+                        {% if polymarket_url %}
+                        <h2>Generated Plot:</h2>
+                        <img src="{{ polymarket_url }}" alt="Generated Plot">
+                        {% endif %}
                     </div>
                 </div>
-                
+                {#<!--
                 <div class="metrics-container">
                     <div class="control-group">
                         <div class="control-label">Volume</div>
@@ -557,9 +556,12 @@
                         <div class="backend-output" id="poly-order-volume">{{ poly_data.order_volume }}</div>
                     </div>
                 </div>
+                -->#}
             </div>
             
-            <!-- Trade Section -->
+            {#<!-- Trade Section -->
+
+            <!--
             <div class="trade-section">
                 <h3>Trade Polymarket</h3>
                 <form id="poly-trade-form" action="{{ url_for('process_poly_trade') }}" method="post">
@@ -613,6 +615,7 @@
                     <button type="submit" class="submit-btn">Execute Trade</button>
                 </form>
             </div>
+            -->#}
         </div>
     </div>
 </body>

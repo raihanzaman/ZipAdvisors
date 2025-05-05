@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
-
+import io
 from dotenv import load_dotenv
 import os
 
@@ -25,6 +25,33 @@ conn_string = 'mysql://{user}:{password}@{host}:{port}/{db}?charset=utf8'.format
 engine = create_engine(conn_string)
 
 """DEFINE IMPORTANT FUNCTIONS"""
+def get_polymarket_df(P_prediction, P_market):
+    try:
+        query_polymarket = f"""
+            SELECT yes_price, no_price, timestamp
+            FROM {P_prediction}
+            WHERE market_name = '{P_market}'
+            ORDER BY timestamp
+        """
+        df_polymarket = pd.read_sql(query_polymarket, engine)
+        df_polymarket['timestamp'] = pd.to_datetime(df_polymarket['timestamp'])
+        return df_polymarket
+    except Exception as e:
+        print(f"❌ Error loading Polymarket data for {P_market}: {e}")
+
+def get_kalshi_df(K_prediction, K_market):
+    try:
+        query_kalshi = f"""
+            SELECT yes_price, no_price, timestamp
+            FROM {K_prediction}
+            WHERE market_name = '{K_market}'
+            ORDER BY timestamp
+        """
+        df_kalshi = pd.read_sql(query_kalshi, engine)
+        df_kalshi['timestamp'] = pd.to_datetime(df_kalshi['timestamp'])
+        return df_kalshi
+    except Exception as e:
+        print(f"❌ Error loading Polymarket data for {K_market}: {e}")
 
 def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     """
@@ -36,29 +63,8 @@ def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     - end_time: str, timestamp (e.g. '2025-04-12 22:30:00')
     """
 
-    try:
-        query_polymarket = f"""
-            SELECT yes_price, no_price, timestamp
-            FROM {P_prediction}
-            WHERE market_name = '{P_market}'
-            ORDER BY timestamp
-        """
-        df_polymarket = pd.read_sql(query_polymarket, engine)
-        df_polymarket['timestamp'] = pd.to_datetime(df_polymarket['timestamp'])
-    except Exception as e:
-        print(f"❌ Error loading Polymarket data for {market}: {e}")
-
-    try:
-        query_kalshi = f"""
-            SELECT yes_price, no_price, timestamp
-            FROM {K_prediction}
-            WHERE market_name = '{K_market}'
-            ORDER BY timestamp
-        """
-        df_kalshi = pd.read_sql(query_kalshi, engine)
-        df_kalshi['timestamp'] = pd.to_datetime(df_kalshi['timestamp'])
-    except Exception as e:
-        print(f"❌ Error loading Kalshi data for {market}: {e}")
+    df_polymarket = get_polymarket_df(P_prediction, P_market)
+    df_kalshi = get_kalshi_df(K_prediction, K_market)
 
     plt.figure(figsize=(12, 6))
     market_label = P_market.replace('_', ' ').title()
@@ -214,28 +220,54 @@ def label_with_volatility_filter(series, volatility_window=5, multiplier=0.5):
     return labels
 
 # Where the inputs from the frontend are going to be
-P_prediction = 'P_nba_western_conference_champion'
-K_prediction = 'K_nba_western_conference_championship'
-P_market = 'denver_nuggets'
-K_market = 'denver'
+def plot_merged_data():
+    P_prediction = 'P_nba_western_conference_champion'
+    P_market = 'denver_nuggets'
+    K_prediction = 'K_nba_western_conference_championship'
+    K_market = 'denver'
 
-df_market = plot_single_market_prices(P_prediction, K_prediction, P_market, K_market)
-df_market = df_market.rename(columns={col: f'{P_market}_{col}' for col in df_market.columns if col != 'timestamp'})
-df_market = align_and_generate_features(df_market, 5, P_market) # number of lags is second
-df_market['timestamp'] = df_market.index
+    df_market = plot_single_market_prices(P_prediction, K_prediction, P_market, K_market)
+    df_market = df_market.rename(columns={col: f'{P_market}_{col}' for col in df_market.columns if col != 'timestamp'})
+    df_market = align_and_generate_features(df_market, 5, P_market) # number of lags is second
+    df_market['timestamp'] = df_market.index
 
-if df_market is not None:
-    df_market.set_index('timestamp', inplace=True)
+    if df_market is not None:
+        df_market.set_index('timestamp', inplace=True)
 
-# Drop rows with any missing values (optional)
-df_market = df_market.dropna()
+    # Drop rows with any missing values (optional)
+    df_market = df_market.dropna()
 
-print(df_market.columns)
-print(df_market.shape)
+def plot_polymarket_data():
+    P_prediction = 'P_nba_western_conference_champion'
+    P_market = 'denver_nuggets'
+    df_polymarket = get_polymarket_df(P_prediction, P_market)
 
+    fig, ax = plt.subplots()
+    ax.plot(df_polymarket['timestamp'], df_polymarket['yes_price'],
+        label=f'{P_prediction + P_market} Yes Price (Polymarket)', marker='o', linestyle='-')
+    img_io = io.BytesIO()
+    plt.savefig(img_io, format='png')
+    img_io.seek(0)
+    plt.close(fig)
+    return img_io
+
+def plot_kalshi_data():
+    K_prediction = 'K_nba_western_conference_championship'
+    K_market = 'denver'
+    df_kalshi = get_polymarket_df(K_prediction, K_market)
+
+    fig, ax = plt.subplots()
+    ax.plot(df_kalshi['timestamp'], df_kalshi['yes_price'],
+        label=f'{K_prediction + K_market} Yes Price (Kalshi)', marker='x', linestyle='--')
+    img_io = io.BytesIO()
+    plt.savefig(img_io, format='png')
+    img_io.seek(0)
+    plt.close(fig)
+    return img_io
+'''
 # --- Apply to market YES contracts only ---
-market = P_market
-df_features = df_market.copy()
+market = 'temp'#P_market
+df_features = f#df_market.copy()
 
 # Label using the filtered method
 yes_series = df_features[f'{market}_delta_log_polymarket_yes']
@@ -254,8 +286,6 @@ df_filtered = pd.get_dummies(df_filtered, columns=['contract_type'])
 print("\nTarget class counts:")
 print(df_filtered["target"].value_counts())
 print("\nFinal shape:", df_filtered.shape)
-
-import matplotlib.pyplot as plt
 
 def make_trend_plot(df_plot):
     # Use your timestamp index (or adjust if needed)
@@ -370,3 +400,4 @@ from sklearn.metrics import roc_auc_score
 
 auc = roc_auc_score(y_test, y_pred)
 print("AUC:", auc)
+'''
