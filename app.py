@@ -17,7 +17,14 @@ def index():
     if request.method == 'POST':
         #kalshi = request.form['kalshi-market']
         #polymarket = request.form['polymarket-market']
-
+        img_io = plot_polymarket_data()
+        img_io2 = plot_kalshi_data()
+        img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
+        img2_base64 = base64.b64encode(img_io2.getvalue()).decode('ascii')
+        poly_url = f'data:image/png;base64,{img_base64}'
+        kalshi_url = f'data:image/png;base64,{img2_base64}'
+        return render_template('index.html', polymarket_url=poly_url, kalshi_url=kalshi_url)
+        '''
         if 'submit-poly' in request.form:
             img_io = plot_polymarket_data()
             img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
@@ -28,7 +35,7 @@ def index():
             img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
             plot_url = f'data:image/png;base64,{img_base64}'
             return render_template('index.html', kalshi_url=plot_url)
-
+        '''
 '''
 @app.route('/api/players/<market>')
 def get_players(market):

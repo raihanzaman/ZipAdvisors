@@ -315,7 +315,7 @@
     <div class="container">
         <!-- Kalshi Section -->
         <div class="market-section" id="kalshi-section">
-            <h2>KALSHI</h2>
+            <h2>TEST</h2>
             
             <!-- Input Section -->
             <div class="input-section">
@@ -383,6 +383,10 @@
                         {% if kalshi_url %}
                         <h2>Generated Plot:</h2>
                         <img src="{{ kalshi_url }}" alt="Generated Plot">
+                        {% endif %}
+                        {% if polymarket_url %}
+                        <h2>Generated Plot:</h2>
+                        <img src="{{ polymarket_url }}" alt="Generated Plot">
                         {% endif %}
                     </div>
                 </div>
@@ -468,7 +472,7 @@
         
         <!-- Polymarket Section -->
         <div class="market-section" id="polymarket-section">
-            <h2>POLYMARKET</h2>
+            {#<h2>POLYMARKET</h2>
             
             <!-- Input Section -->
             <div class="input-section">
@@ -484,7 +488,7 @@
                                 </select>
                             </div>
                         </div>
-                        {#<!--
+                        <!--
                         <div class="control-group">
                             <div class="control-label">Yes/No Select</div>
                             <div class="client-input">
@@ -520,7 +524,7 @@
                                 </select>
                             </div>
                         </div>
-                        -->#}
+                        -->
                         <button type="submit" name="submit-poly" class="submit-btn">Apply</button>
                     </div>
                 </form>
@@ -539,7 +543,7 @@
                         {% endif %}
                     </div>
                 </div>
-                {#<!--
+                <!--
                 <div class="metrics-container">
                     <div class="control-group">
                         <div class="control-label">Volume</div>
@@ -556,10 +560,10 @@
                         <div class="backend-output" id="poly-order-volume">{{ poly_data.order_volume }}</div>
                     </div>
                 </div>
-                -->#}
+                -->
             </div>
             
-            {#<!-- Trade Section -->
+            <!-- Trade Section -->
 
             <!--
             <div class="trade-section">
@@ -615,8 +619,8 @@
                     <button type="submit" class="submit-btn">Execute Trade</button>
                 </form>
             </div>
-            -->#}
-        </div>
+            -->
+        </div>#}
     </div>
 </body>
 </html>
