@@ -31,7 +31,7 @@ its own table. A helper function sanitizes market names to prevent SQL injection
 with database naming conventions. We run the dual-engine scrapers on a VM (Virtual Machine) on 
 NYU’s servers. 
 Now, we have built the user Interface for the software, served on a web-server. The frontend 
-architecture is composed of HTML, CSS, and JavaScript, wrapped in the Python web framework, Flask. 
+architecture is composed of HTML and CSS wrapped in the Python web framework, Flask. 
 We have used the professors database connection to store and retrieve data via SQLalchemy to our 
 frontend. We are working on using the best charting library for our custom overlay component, and we 
 estimate that will be the majority of work from this milestone submission to the final deadline
