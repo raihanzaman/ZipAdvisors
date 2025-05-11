@@ -1,41 +1,27 @@
-from flask import Flask, request, send_file, render_template
-from ml_backend import plot_kalshi_data, plot_polymarket_data
+from flask import Flask, request, render_template
+from ml_backend import prediction_dropdowns, plot_kalshi_data, plot_polymarket_data
 from flask_cors import CORS
 from datetime import datetime
 import os
 import re
-import base64
-import io
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
 
 @app.route('/', methods = ['GET', 'POST'])
 def index():
+    predictions = prediction_dropdowns()
     if request.method == 'GET':
-        return render_template('index.html')
+        return render_template('index.html', predictions=predictions)
     if request.method == 'POST':
-        #kalshi = request.form['kalshi-market']
-        #polymarket = request.form['polymarket-market']
-        img_io = plot_polymarket_data()
-        img_io2 = plot_kalshi_data()
-        img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
-        img2_base64 = base64.b64encode(img_io2.getvalue()).decode('ascii')
-        poly_url = f'data:image/png;base64,{img_base64}'
-        kalshi_url = f'data:image/png;base64,{img2_base64}'
-        return render_template('index.html', polymarket_url=poly_url, kalshi_url=kalshi_url)
-        '''
-        if 'submit-poly' in request.form:
-            img_io = plot_polymarket_data()
-            img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
-            plot_url = f'data:image/png;base64,{img_base64}'
-            return render_template('index.html', polymarket_url=plot_url)
         if 'submit-kalshi' in request.form:
-            img_io = plot_kalshi_data()
-            img_base64 = base64.b64encode(img_io.getvalue()).decode('ascii')
-            plot_url = f'data:image/png;base64,{img_base64}'
-            return render_template('index.html', kalshi_url=plot_url)
-        '''
+            kalshi = request.form
+            kalshi_url = plot_kalshi_data(kalshi['select-market'])
+            return render_template('index.html', predictions=predictions, kalshi_url=kalshi_url)
+        if 'submit-poly' in request.form:
+            polymarket = request.form
+            polymarket_url = plot_kalshi_data(polymarket['select-market'])
+            return render_template('index.html', predictions=predictions, polymarket_url=polymarket_url)
 '''
 @app.route('/api/players/<market>')
 def get_players(market):

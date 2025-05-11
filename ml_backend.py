@@ -3,10 +3,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 import io
 from dotenv import load_dotenv
 import os
+import plotly.express as px
+import plotly.io as pio
 
 load_dotenv()
 
@@ -63,10 +65,31 @@ def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     - end_time: str, timestamp (e.g. '2025-04-12 22:30:00')
     """
 
-    df_polymarket = get_polymarket_df(P_prediction, P_market)
-    df_kalshi = get_kalshi_df(K_prediction, K_market)
+    try:
+        query_polymarket = f"""
+            SELECT yes_price, no_price, timestamp
+            FROM {P_prediction}
+            WHERE market_name = '{P_market}'
+            ORDER BY timestamp
+        """
+        df_polymarket = pd.read_sql(query_polymarket, engine)
+        df_polymarket['timestamp'] = pd.to_datetime(df_polymarket['timestamp'])
+    except Exception as e:
+        print(f"❌ Error loading Polymarket data for {P_market}: {e}")
 
-    plt.figure(figsize=(12, 6))
+    try:
+        query_kalshi = f"""
+            SELECT yes_price, no_price, timestamp
+            FROM {K_prediction}
+            WHERE market_name = '{K_market}'
+            ORDER BY timestamp
+        """
+        df_kalshi = pd.read_sql(query_kalshi, engine)
+        df_kalshi['timestamp'] = pd.to_datetime(df_kalshi['timestamp'])
+    except Exception as e:
+        print(f"❌ Error loading Kalshi data for {K_market}: {e}")
+
+    '''plt.figure(figsize=(12, 6))
     market_label = P_market.replace('_', ' ').title()
 
     plt.plot(df_polymarket['timestamp'], df_polymarket['yes_price'],
@@ -79,7 +102,22 @@ def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.show()'''
+
+    fig = px.line(df_polymarket, x='timestamp', y='yes_price', title='Time Series with Range Slider and Selectors')
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
+    )
+    fig.show()
 
     #rename each column to it's relevant polymarket_kalshi_prefix (except timestamp)
     df_polymarket = df_polymarket.rename(columns={col: f'polymarket_{col}' for col in df_polymarket.columns if col != 'timestamp'})
@@ -237,33 +275,60 @@ def plot_merged_data():
     # Drop rows with any missing values (optional)
     df_market = df_market.dropna()
 
-def plot_polymarket_data():
-    P_prediction = 'P_nba_western_conference_champion'
+def plot_polymarket_data(P_prediction):
     P_market = 'denver_nuggets'
     df_polymarket = get_polymarket_df(P_prediction, P_market)
+    fig = px.line(df_polymarket, x='timestamp', y='yes_price', title=f'Polymarket Graph for {P_prediction}')
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
+    )
+    return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
 
-    fig, ax = plt.subplots()
-    ax.plot(df_polymarket['timestamp'], df_polymarket['yes_price'],
-        label=f'{P_prediction + P_market} Yes Price (Polymarket)', marker='o', linestyle='-')
-    img_io = io.BytesIO()
-    plt.savefig(img_io, format='png')
-    img_io.seek(0)
-    plt.close(fig)
-    return img_io
 
-def plot_kalshi_data():
-    K_prediction = 'K_nba_western_conference_championship'
+def plot_kalshi_data(K_prediction):
     K_market = 'denver'
-    df_kalshi = get_polymarket_df(K_prediction, K_market)
+    df_kalshi = get_kalshi_df(K_prediction, K_market)
+    fig = px.line(df_kalshi, x='timestamp', y='yes_price', title=f'Kalshi Graph for {K_prediction}')
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
+    )
+    return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
 
-    fig, ax = plt.subplots()
-    ax.plot(df_kalshi['timestamp'], df_kalshi['yes_price'],
-        label=f'{K_prediction + K_market} Yes Price (Kalshi)', marker='x', linestyle='--')
-    img_io = io.BytesIO()
-    plt.savefig(img_io, format='png')
-    img_io.seek(0)
-    plt.close(fig)
-    return img_io
+def get_table_names():
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    return table_names
+
+def get_market_names(table_name):
+    market_names = pd.read_sql(f'SELECT DISTINCT market_name FROM {table_name}', con=engine)['market_name'].tolist()
+    return market_names
+
+def convert_table_name_to_clean(name):
+    return name.replace("P_", "").replace("_", " ").title()
+
+def prediction_dropdowns():
+    table_names = get_table_names()
+    predictions = {convert_table_name_to_clean(name): name for name in table_names}
+    return predictions
+
 '''
 # --- Apply to market YES contracts only ---
 market = 'temp'#P_market
