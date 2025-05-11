@@ -1,5 +1,3 @@
-# Setting Up The Database
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,9 +7,9 @@ from dotenv import load_dotenv
 import os
 import plotly.express as px
 import plotly.io as pio
+import plotly.graph_objects as go
 
 load_dotenv()
-
 DB_USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('DB_PASS')
 DB_NAME =os.getenv('DB_NAME')
@@ -26,7 +24,6 @@ conn_string = 'mysql://{user}:{password}@{host}:{port}/{db}?charset=utf8'.format
 )
 engine = create_engine(conn_string)
 
-"""DEFINE IMPORTANT FUNCTIONS"""
 def get_polymarket_df(P_prediction, P_market):
     try:
         query_polymarket = f"""
@@ -55,6 +52,15 @@ def get_kalshi_df(K_prediction, K_market):
     except Exception as e:
         print(f"❌ Error loading Polymarket data for {K_market}: {e}")
 
+def get_table_names():
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    return table_names
+
+def get_market_names(table_name):
+    market_names = pd.read_sql(f'SELECT DISTINCT market_name FROM {table_name}', con=engine)['market_name'].tolist()
+    return market_names
+
 def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     """
     Plots prices for a given market from both polymarket and kalshi databases.
@@ -65,29 +71,8 @@ def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
     - end_time: str, timestamp (e.g. '2025-04-12 22:30:00')
     """
 
-    try:
-        query_polymarket = f"""
-            SELECT yes_price, no_price, timestamp
-            FROM {P_prediction}
-            WHERE market_name = '{P_market}'
-            ORDER BY timestamp
-        """
-        df_polymarket = pd.read_sql(query_polymarket, engine)
-        df_polymarket['timestamp'] = pd.to_datetime(df_polymarket['timestamp'])
-    except Exception as e:
-        print(f"❌ Error loading Polymarket data for {P_market}: {e}")
-
-    try:
-        query_kalshi = f"""
-            SELECT yes_price, no_price, timestamp
-            FROM {K_prediction}
-            WHERE market_name = '{K_market}'
-            ORDER BY timestamp
-        """
-        df_kalshi = pd.read_sql(query_kalshi, engine)
-        df_kalshi['timestamp'] = pd.to_datetime(df_kalshi['timestamp'])
-    except Exception as e:
-        print(f"❌ Error loading Kalshi data for {K_market}: {e}")
+    df_polymarket = get_polymarket_df(P_prediction, P_market)
+    df_kalshi = get_kalshi_df(K_prediction, K_market)
 
     '''plt.figure(figsize=(12, 6))
     market_label = P_market.replace('_', ' ').title()
@@ -275,10 +260,24 @@ def plot_merged_data():
     # Drop rows with any missing values (optional)
     df_market = df_market.dropna()
 
-def plot_polymarket_data(P_prediction):
-    P_market = 'denver_nuggets'
+def plot_polymarket_data(P_prediction, P_market, choice):
+    if choice == 'yes':
+        choice = 'yes_price'
+    else:
+        choice = 'no_price'
     df_polymarket = get_polymarket_df(P_prediction, P_market)
-    fig = px.line(df_polymarket, x='timestamp', y='yes_price', title=f'Polymarket Graph for {P_prediction}')
+    if choice == 'yes':
+        choice = 'yes_price'
+
+    if df_polymarket is None or not isinstance(df_polymarket, pd.DataFrame) or df_polymarket.empty:
+        raise ValueError("Polymarket DataFrame is invalid or empty.")
+    
+    if choice not in df_polymarket.columns:
+        raise ValueError(f"Column '{choice}' not found in Polymarket DataFrame.")
+    
+    else:
+        choice = 'no_price'
+    fig = px.line(df_polymarket, x='timestamp', y=f'{choice}', title=f'Polymarket Graph for {P_prediction}')
     fig.update_xaxes(
         rangeslider_visible=True,
         rangeselector=dict(
@@ -293,11 +292,22 @@ def plot_polymarket_data(P_prediction):
     )
     return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
 
-
-def plot_kalshi_data(K_prediction):
-    K_market = 'denver'
+def plot_kalshi_data(K_prediction, K_market, choice):
+    if choice == 'yes':
+        choice = 'yes_price'
+    else:
+        choice = 'no_price'
     df_kalshi = get_kalshi_df(K_prediction, K_market)
-    fig = px.line(df_kalshi, x='timestamp', y='yes_price', title=f'Kalshi Graph for {K_prediction}')
+    if df_kalshi is None or not isinstance(df_kalshi, pd.DataFrame) or df_kalshi.empty:
+        raise ValueError("Kalshi DataFrame is invalid or empty.")
+    
+    if choice not in df_kalshi.columns:
+        raise ValueError(f"Column '{choice}' not found in Kalshi DataFrame.")
+
+    prediction_label = convert_table_name_to_clean(K_prediction)
+    market_label = convert_table_name_to_clean(K_market)
+
+    fig = px.line(df_kalshi, x='timestamp', y=choice, title=f'Kalshi Graph for {prediction_label} and {market_label}')
     fig.update_xaxes(
         rangeslider_visible=True,
         rangeselector=dict(
@@ -312,22 +322,94 @@ def plot_kalshi_data(K_prediction):
     )
     return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
 
-def get_table_names():
-    inspector = inspect(engine)
-    table_names = inspector.get_table_names()
-    return table_names
-
-def get_market_names(table_name):
-    market_names = pd.read_sql(f'SELECT DISTINCT market_name FROM {table_name}', con=engine)['market_name'].tolist()
-    return market_names
 
 def convert_table_name_to_clean(name):
-    return name.replace("P_", "").replace("_", " ").title()
+    return name.replace("P_", "").replace("K_", "").replace("_", " ").title()
 
 def prediction_dropdowns():
     table_names = get_table_names()
     predictions = {convert_table_name_to_clean(name): name for name in table_names}
     return predictions
+
+def prediction_dropdowns(prefix):
+    table_names = get_table_names()
+    filtered_tables = [name for name in table_names if name.startswith(prefix)]
+    predictions = {convert_table_name_to_clean(name): name for name in filtered_tables}
+    return predictions
+
+def market_dropdowns(table_name):
+    market_names = get_market_names(table_name)
+    markets = {convert_table_name_to_clean(name): name for name in market_names}
+    return markets
+
+def plot_kalshi_volatility(K_prediction, K_market, window=12):
+    """
+    Overlay Kalshi YES price with rolling volatility on dual y-axes.
+
+    Args:
+        K_prediction (str): Table or identifier for the prediction.
+        K_market (str): Table or identifier for the market.
+        window (int): Rolling window size for volatility.
+
+    Returns:
+        str: HTML representation of the Plotly figure.
+    """
+    # Load and prepare data
+    df_kalshi = get_kalshi_df(K_prediction, K_market)
+    df_kalshi = df_kalshi.sort_values("timestamp")
+    df_kalshi['volatility'] = df_kalshi['yes_price'].rolling(window=window).std()
+
+    # Labels
+    prediction_label = convert_table_name_to_clean(K_prediction)
+    market_label = convert_table_name_to_clean(K_market)
+
+    # Build figure
+    fig = go.Figure()
+
+    # YES price (primary axis)
+    fig.add_trace(go.Scatter(
+        x=df_kalshi['timestamp'],
+        y=df_kalshi['yes_price'],
+        mode='lines',
+        name='YES Price',
+        line=dict(color='blue')
+    ))
+
+    # Volatility (secondary axis, faint color)
+    fig.add_trace(go.Scatter(
+        x=df_kalshi['timestamp'],
+        y=df_kalshi['volatility'],
+        mode='lines',
+        name=f'Volatility (Rolling {window})',
+        line=dict(color='orange', dash='dot', width=2),
+        opacity=0.5,
+        yaxis='y2'
+    ))
+
+    # Layout with dual y-axes
+    fig.update_layout(
+        title=f"Kalshi YES Price and Volatility — {prediction_label} / {market_label}",
+        xaxis=dict(
+            title='Timestamp',
+            rangeslider=dict(visible=True),
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1y", step="year", stepmode="backward"),
+                    dict(step="all")
+                ])
+            )
+        ),
+        yaxis=dict(title='YES Price', side='left'),
+        yaxis2=dict(title='Volatility', overlaying='y', side='right', showgrid=False),
+        legend=dict(x=0, y=1),
+        height=600,
+        template='plotly_white'
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
 
 '''
 # --- Apply to market YES contracts only ---

@@ -7,21 +7,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-
     <div class="container">
-        <!-- Kalshi Section -->
-        <div class="market-section" id="kalshi-section">
-            <h2>Kalshi</h2>
-            
-            <!-- Input Section -->
+        <!-- Consolidated Input Section -->
+        <div class="market-section">
+            <h2>ZipAdvisors</h2>
             <div class="input-section">
                 <h3>Inputs</h3>
-                <form id="kalshi-input-form" method="post">
+                <form id="input-form" method="post">
                     <div class="controls">
+                        <div class="control-group">
+                            <div class="control-label">Select Market</div>
+                            <div class="client-input">
+                                <div class="yes-no">
+                                    <input type="radio" id="polymarket" name="market" value="polymarket">
+                                    <label for="polymarket">Polymarket</label>
+                                    <input type="radio" id="kalshi" name="market" value="kalshi" checked>
+                                    <label for="kalshi">Kalshi</label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="control-group">
                             <div class="control-label">Market Select</div>
                             <div class="client-input">
-                                <select id="kalshi-market" name="select-market">
+                                <select id="market-select" name="select-market">
                                     <option value="">Select Market</option>
                                     <option value="nba-west">NBA West</option>
                                     {% for clean_name, actual_name in predictions.items() %}
@@ -31,284 +39,151 @@
                             </div>
                         </div>
                         <div class="control-group">
+                            <div class="control-label">Prediction Market</div>
+                            <div class="client-input">
+                                <select id="prediction-market" name="prediction-market">
+                                    <option value="">Select Prediction Market</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control-group">
                             <div class="control-label">Yes/No Select</div>
                             <div class="client-input">
                                 <div class="yes-no">
-                                    <input type="radio" id="kalshi-yes" name="kalshi-choice" value="yes">
-                                    <label for="kalshi-yes">Yes</label>
-                                    <input type="radio" id="kalshi-no" name="kalshi-choice" value="no">
-                                    <label for="kalshi-no">No</label>
+                                    <input type="radio" id="yes" name="choice" value="yes">
+                                    <label for="yes">Yes</label>
+                                    <input type="radio" id="no" name="choice" value="no">
+                                    <label for="no">No</label>
                                 </div>
                             </div>
                         </div>
                         <div class="control-group">
-                            <div class="control-label">Prediction Market</div>
-                            <div class="client-input">
-                                <select id="kalshi-prediction-market" name="kalshi-prediction">
-                                    <option value="">Select Prediction Market</option>
-                                    <option value="market1">Market 1</option>
-                                    <option value="market2">Market 2</option>
-                                    <option value="market3">Market 3</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="control-group">
                             <div class="control-label">Choose Visualization</div>
                             <div class="client-input">
-                                <select id="kalshi-algo-select" name="kalshi-algo">
+                                <select id="algo-select" name="algo">
                                     <option value="">Select Visualization</option>
+                                    <option value="show">Show The Data</option>
+                                    <option value="volatility">Volatility Visualization</option>
                                     <option value="algo1">XGBoost Algorithm</option>
                                     <option value="algo2">Linear Regression</option>
                                 </select>
                             </div>
                         </div>
-                        <button type="submit" name="submit-kalshi" class="submit-btn">Apply</button>
+                        <button type="submit" name="submit" class="submit-btn">Apply</button>
                     </div>
                 </form>
             </div>
-            
-            <!-- Output Section -->
-            <div class="output-section">
-                <h3>Outputs</h3>
-                
-                <div class="chart-container">
-                    <div class="chart">
-                        <div class="chart-placeholder">Kalshi Chart will appear here</div>
-                        {{ kalshi_url|safe }}
-                    </div>
-                </div>
-                
-                <div class="metrics-container">
-                    {#<!--
-                    <div class="control-group">
-                        <div class="control-label">Volume</div>
-                        <div class="backend-output" id="kalshi-volume">{{ kalshi_data.volume }}</div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <div class="control-label">Bid-Ask Spread</div>
-                        <div class="backend-output" id="kalshi-bid-ask-spread">{{ kalshi_data.bid_ask }}</div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <div class="control-label">Order/Volume</div>
-                        <div class="backend-output" id="kalshi-order-volume">{{ kalshi_data.order_volume }}</div>
-                    </div>
-                -->#}
-                </div>
-            </div>
-            
-            <!-- Trade Section -->
-
-            {#<!--
-            <div class="trade-section">
-                <h3>Trade Kalshi</h3>
-                <form id="kalshi-trade-form" action="{{ url_for('process_kalshi_trade') }}" method="post">
-                    <table class="trade-table">
-                        <thead>
-                            <tr>
-                                <th># of contracts</th>
-                                <th>Market Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="client-input">
-                                        <input type="number" id="kalshi-contracts" name="kalshi-contracts" placeholder="# of contracts">
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="client-input">
-                                        <select id="kalshi-market-details" name="kalshi-market-details">
-                                            <option value="">Select Market</option>
-                                            <option value="market1">Market 1</option>
-                                            <option value="market2">Market 2</option>
-                                        </select>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="client-input">
-                                        <div class="yes-no">
-                                            <input type="radio" id="kalshi-trade-yes-opt" name="kalshi-trade-choice" value="yes">
-                                            <label for="kalshi-trade-yes-opt">Yes</label>
-                                            <input type="radio" id="kalshi-trade-no-opt" name="kalshi-trade-choice" value="no">
-                                            <label for="kalshi-trade-no-opt">No</label>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="client-input">
-                                        <select id="kalshi-trade-player" name="kalshi-trade-player">
-                                            <option value="">Select Player</option>
-                                            <option value="player1">Player 1</option>
-                                            <option value="player2">Player 2</option>
-                                        </select>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <button type="submit" class="submit-btn">Execute Trade</button>
-                </form>
-            </div>
-            -->#}
         </div>
-        
-        <!-- Polymarket Section -->
-        <div class="market-section" id="polymarket-section">
-            <h2>POLYMARKET</h2>
-            
-            <!-- Input Section -->
-            <div class="input-section">
-                <h3>Inputs</h3>
-                <form id="poly-input-form" method="post">
-                    <div class="controls">
-                        <div class="control-group">
-                            <div class="control-label">Market Select</div>
-                            <div class="client-input">
-                                <select id="polymarket_market" name="polymarket_market">
-                                    <option value="">Select Market</option>
-                                    <option value="nba-west">NBA West</option>
-                                    {% for clean_name, actual_name in predictions.items() %}
-                                    <option value="{{ actual_name }}">{{ clean_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="control-group">
-                            <div class="control-label">Yes/No Select</div>
-                            <div class="client-input">
-                                <div class="yes-no">
-                                    <input type="radio" id="poly-yes" name="poly-choice" value="yes">
-                                    <label for="poly-yes">Yes</label>
-                                    <input type="radio" id="poly-no" name="poly-choice" value="no">
-                                    <label for="poly-no">No</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="control-group">
-                            <div class="control-label">Prediction Market</div>
-                            <div class="client-input">
-                                <select id="poly-prediction-market" name="poly-prediction">
-                                    <option value="">Select Prediction Market</option>
-                                    <option value="market1">Market 1</option>
-                                    <option value="market2">Market 2</option>
-                                    <option value="market3">Market 3</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="control-group">
-                            <div class="control-label">Choose Visualization</div>
-                            <div class="client-input">
-                                <select id="poly-algo-select" name="poly-algo">
-                                    <option value="">Select Visualization</option>
-                                    <option value="algo1">Algorithm 1</option>
-                                    <option value="algo2">Algorithm 2</option>
-                                    <option value="algo3">Algorithm 3</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" name="submit-poly" class="submit-btn">Apply</button>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Output Section -->
+
+        <!-- Consolidated Output Section -->
+        <div class="market-section">
+            <h2>Outputs</h2>
             <div class="output-section">
-                <h3>Outputs</h3>
-                
+                <h3>Kalshi Graph</h3>
                 <div class="chart-container">
                     <div class="chart">
-                        <div class="chart-placeholder">Polymarket Chart will appear here</div>
-                        {{ polymarket_url|safe }}
+                        <div class="chart-placeholder">Kalshi Plot will appear here</div>
+                        {% if kalshi_url %}
+                        <div id="kalshi-chart">
+                            {{ kalshi_url|safe }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                {#<!--
+            </div>
+            <div class="output-section">
+                <h3>Polymarket Graph</h3>
+                <div class="chart-container">
+                    <div class="chart">
+                        <div class="chart-placeholder">Polymarket Plot will appear here</div>
+                        {% if polymarket_url %}
+                        <div id="polymarket-chart">
+                            {{ polymarket_url|safe }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="output-section">
+                <h3>Statistics</h3>
                 <div class="metrics-container">
                     <div class="control-group">
-                        <div class="control-label">Volume</div>
-                        <div class="backend-output" id="poly-volume">{{ poly_data.volume }}</div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <div class="control-label">Bid-Ask Spread</div>
-                        <div class="backend-output" id="poly-bid-ask-spread">{{ poly_data.bid_ask }}</div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <div class="control-label">Order/Volume</div>
-                        <div class="backend-output" id="poly-order-volume">{{ poly_data.order_volume }}</div>
+                        <div class="control-label">Trading Volume</div>
+                        <div class="backend-output" id="trading-volume">N/A</div>
                     </div>
                 </div>
-                -->#}
             </div>
-            
-            <!-- Trade Section -->
-
-            {#<!--
-            <div class="trade-section">
-                <h3>Trade Polymarket</h3>
-                <form id="poly-trade-form" action="{{ url_for('process_poly_trade') }}" method="post">
-                    <table class="trade-table">
-                        <thead>
-                            <tr>
-                                <th># of contracts</th>
-                                <th>Market Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="client-input">
-                                        <input type="number" id="poly-contracts" name="poly-contracts" placeholder="# of contracts">
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="client-input">
-                                        <select id="poly-market-details" name="poly-market-details">
-                                            <option value="">Select Market</option>
-                                            <option value="market1">Market 1</option>
-                                            <option value="market2">Market 2</option>
-                                        </select>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="client-input">
-                                        <div class="yes-no">
-                                            <input type="radio" id="poly-trade-yes-opt" name="poly-trade-choice" value="yes">
-                                            <label for="poly-trade-yes-opt">Yes</label>
-                                            <input type="radio" id="poly-trade-no-opt" name="poly-trade-choice" value="no">
-                                            <label for="poly-trade-no-opt">No</label>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="client-input">
-                                        <select id="poly-trade-player" name="poly-trade-player">
-                                            <option value="">Select Player</option>
-                                            <option value="player1">Player 1</option>
-                                            <option value="player2">Player 2</option>
-                                        </select>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <button type="submit" class="submit-btn">Execute Trade</button>
-                </form>
-            </div>
-            -->#}
         </div>
     </div>
+    
+    <script>
+    let currentSource = 'K_'; // Default is Kalshi
+    function updateMarketDropdown() {
+        const marketSelect = document.getElementById("market-select");
+        marketSelect.innerHTML = '<option value="">Select Market</option>';
+
+        fetch(`/?source=${encodeURIComponent(currentSource)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error loading markets: " + data.error);
+                    return;
+                }
+
+                for (const [cleanName, actualName] of Object.entries(data)) {
+                    const option = document.createElement("option");
+                    option.value = actualName;
+                    option.textContent = cleanName;
+                    marketSelect.appendChild(option);
+                }
+
+                // Add event listener AFTER repopulating
+                marketSelect.addEventListener("change", handleMarketSelectChange);
+            })
+            .catch(err => {
+                console.error("Market fetch error:", err);
+                alert("Failed to load market options.");
+            });
+    }
+
+    function handleMarketSelectChange() {
+        const selectedTable = this.value;
+        const predictionDropdown = document.getElementById("prediction-market");
+        predictionDropdown.innerHTML = '<option value="">Select Prediction Market</option>';
+
+        if (!selectedTable) return;
+
+        fetch(`/?table_name=${encodeURIComponent(selectedTable)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                    return;
+                }
+
+                for (const [cleanName, actualName] of Object.entries(data)) {
+                    const option = document.createElement("option");
+                    option.value = actualName;
+                    option.textContent = cleanName;
+                    predictionDropdown.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error("Fetch error:", error);
+                alert("Could not load prediction markets.");
+            });
+    }
+
+    // Listen for Kalshi/Polymarket radio button changes
+    document.querySelectorAll('input[name="market"]').forEach((radio) => {
+        radio.addEventListener("change", function () {
+            currentSource = this.value === "kalshi" ? "K_" : "P_";
+            updateMarketDropdown();
+        });
+    });
+
+    // Run this on page load (default Kalshi)
+    updateMarketDropdown();
+    </script>
 </body>
 </html>

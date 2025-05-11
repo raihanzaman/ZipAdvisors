@@ -81,7 +81,7 @@
         /* Chart specific styling */
         .chart-container {
             width: 100%;
-            height: 300px; /* Fixed height */
+            height: 500px; /* Fixed height */
             margin-bottom: 10px;
         }
         
