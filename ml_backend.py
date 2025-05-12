@@ -9,7 +9,12 @@ import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
 import pymysql
+from xgboost import XGBClassifier
+import xgboost as xgb
 pymysql.install_as_MySQLdb()
+
+model = xgb.XGBClassifier()
+model = model.load_model('models/two_player_xgb.json')
 
 load_dotenv()
 DB_USER = os.getenv('DB_USER')
@@ -63,48 +68,10 @@ def get_market_names(table_name):
     market_names = pd.read_sql(f'SELECT DISTINCT market_name FROM {table_name}', con=engine)['market_name'].tolist()
     return market_names
 
-def plot_single_market_prices(P_prediction, K_prediction, P_market, K_market):
-    """
-    Plots prices for a given market from both polymarket and kalshi databases.
-
-    Parameters:
-    - market: str, market name (e.g. 'rory_mcilroy')
-    - start_time: str, timestamp (e.g. '2025-04-12 18:25:00')
-    - end_time: str, timestamp (e.g. '2025-04-12 22:30:00')
-    """
+def merge_databases(P_prediction, K_prediction, P_market, K_market):
 
     df_polymarket = get_polymarket_df(P_prediction, P_market)
     df_kalshi = get_kalshi_df(K_prediction, K_market)
-
-    '''plt.figure(figsize=(12, 6))
-    market_label = P_market.replace('_', ' ').title()
-
-    plt.plot(df_polymarket['timestamp'], df_polymarket['yes_price'],
-            label=f'{market_label} Yes Price (Polymarket)', marker='o', linestyle='-')
-    plt.plot(df_kalshi['timestamp'], df_kalshi['yes_price'],
-            label=f'{market_label} Yes Price (Kalshi)', marker='x', linestyle='--')
-    plt.xlabel("Timestamp")
-    plt.ylabel("Yes Price")
-    plt.title(f"YES Contract Price for {market_label}")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()'''
-
-    fig = px.line(df_polymarket, x='timestamp', y='yes_price', title='Time Series with Range Slider and Selectors')
-    fig.update_xaxes(
-        rangeslider_visible=True,
-        rangeselector=dict(
-            buttons=list([
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(step="all")
-            ])
-        )
-    )
-    fig.show()
 
     #rename each column to it's relevant polymarket_kalshi_prefix (except timestamp)
     df_polymarket = df_polymarket.rename(columns={col: f'polymarket_{col}' for col in df_polymarket.columns if col != 'timestamp'})
@@ -251,7 +218,7 @@ def plot_merged_data():
     K_prediction = 'K_nba_western_conference_championship'
     K_market = 'denver'
 
-    df_market = plot_single_market_prices(P_prediction, K_prediction, P_market, K_market)
+    df_market = merge_databases(P_prediction, K_prediction, P_market, K_market)
     df_market = df_market.rename(columns={col: f'{P_market}_{col}' for col in df_market.columns if col != 'timestamp'})
     df_market = align_and_generate_features(df_market, 5, P_market) # number of lags is second
     df_market['timestamp'] = df_market.index
