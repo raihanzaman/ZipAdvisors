@@ -8,13 +8,15 @@ import os
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
+import pymysql
+pymysql.install_as_MySQLdb()
 
 load_dotenv()
 DB_USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('DB_PASS')
 DB_NAME =os.getenv('DB_NAME')
 
-conn_string = 'mysql://{user}:{password}@{host}:{port}/{db}?charset=utf8'.format(
+conn_string = 'mysql+pymysql://{user}:{password}@{host}:{port}/{db}?charset=utf8'.format(
     user=f'{DB_USER}',
     password=f'{DB_PASS}',
     host = 'jsedocc7.scrc.nyu.edu',
