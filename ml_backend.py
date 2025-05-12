@@ -282,11 +282,11 @@ def plot_polymarket_data(P_prediction, P_market, choice):
         rangeslider_visible=True,
         rangeselector=dict(
             buttons=list([
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(step="all")
+                dict(count=30, label="30s", step="second", stepmode="backward"), 
+                dict(count=1, label="1m", step="minute", stepmode="backward"), 
+                dict(count=1, label="1h", step="hour", stepmode="backward"), 
+                dict(count=1, label="1d", step="day", stepmode="backward"),
+                dict(step="all", label="To Date"),
             ])
         )
     )
@@ -312,15 +312,15 @@ def plot_kalshi_data(K_prediction, K_market, choice):
         rangeslider_visible=True,
         rangeselector=dict(
             buttons=list([
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(step="all")
+                dict(count=30, label="30s", step="second", stepmode="backward"), 
+                dict(count=1, label="1m", step="minute", stepmode="backward"), 
+                dict(count=1, label="1h", step="hour", stepmode="backward"), 
+                dict(count=1, label="1d", step="day", stepmode="backward"),
+                dict(step="all", label="To Date"),
             ])
         )
     )
-    return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+    return pio.to_html(fig, full_html=False, include_plotlyjs='cdn', include_mathjax=False)
 
 
 def convert_table_name_to_clean(name):

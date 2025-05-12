@@ -64,11 +64,11 @@
                                     <option value="">Select Visualization</option>
                                     <option value="show">Show The Data</option>
                                     <option value="volatility">Volatility Visualization</option>
-                                    <option value="algo1">XGBoost Algorithm</option>
-                                    <option value="algo2">Linear Regression</option>
                                 </select>
                             </div>
                         </div>
+                        <input type="hidden" name="existing_kalshi_url" value="{{ kalshi_url|default('')|tojson|safe }}">
+                        <input type="hidden" name="existing_polymarket_url" value="{{ polymarket_url|default('')|tojson|safe }}">
                         <button type="submit" name="submit" class="submit-btn">Apply</button>
                     </div>
                 </form>

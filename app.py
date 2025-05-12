@@ -11,8 +11,6 @@ def index():
     predictions = prediction_dropdowns('K_')  # Default to Kalshi
     kalshi_url = None
     polymarket_url = None
-    kalshi_state = {}
-    polymarket_state = {}
 
     if request.method == 'GET':
         source = request.args.get("source")
@@ -35,7 +33,7 @@ def index():
                 return jsonify({"error": str(e)}), 500
 
         # Initial page load
-        return render_template('index.html', predictions=predictions)
+        return render_template('index.html', predictions=predictions, kalshi_url=kalshi_url, polymarket_url=polymarket_url)
     if request.method == 'POST':
         form_data = request.form
         market_type = form_data.get("market")
@@ -74,24 +72,5 @@ def index():
             kalshi_url=kalshi_url,
             polymarket_url=polymarket_url
         )
-    '''
-    if request.method == 'POST':
-        form_data = request.form
-
-        if 'kalshi' in form_data.get('market', ''):
-            choice = form_data.get('choice')
-            if form_data.get('algo') == 'show':
-                kalshi_url = plot_kalshi_data(form_data['select-market'], form_data['prediction-market'], choice)
-            elif form_data.get('algo') == 'volatility':
-                kalshi_url = plot_kalshi_volatility(form_data['select-market'], form_data['prediction-market'])
-
-        elif 'polymarket' in form_data.get('market', ''):
-            choice = form_data.get('choice')
-            if form_data.get('algo') == 'show':
-                polymarket_url = plot_polymarket_data(form_data['select-market'], form_data['prediction-market'], choice)
-        return render_template('index.html', predictions=predictions,
-                           kalshi_url=kalshi_url,
-                           polymarket_url=polymarket_url)
-    '''
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
