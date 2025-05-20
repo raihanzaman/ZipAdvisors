@@ -64,11 +64,15 @@
                                     <option value="">Select Visualization</option>
                                     <option value="show">Show The Data</option>
                                     <option value="volatility">Volatility Visualization</option>
+                                    <option value="xgboost">XGBoost - Predict Polymarket Movement</option>
                                 </select>
                             </div>
                         </div>
-                        <input type="hidden" name="existing_kalshi_url" value="{{ kalshi_url|default('')|tojson|safe }}">
-                        <input type="hidden" name="existing_polymarket_url" value="{{ polymarket_url|default('')|tojson|safe }}">
+                        <div class="control-group">
+                            <div class="control-label">XGBoost Threshold</div>
+                            <input type="number" id="threshold" name="threshold" min="0" max="0.5" step="0.01" value="0.35">
+                            <label for="threshold"></label>
+                        </div>
                         <button type="submit" name="submit" class="submit-btn">Apply</button>
                     </div>
                 </form>
@@ -117,6 +121,38 @@
     </div>
     
     <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const algoSelect = document.getElementById("algo-select");
+        const kalshiOption = document.createElement("option");
+        kalshiOption.value = "xgboost";
+        kalshiOption.textContent = "XGBoost";
+
+        const marketRadios = document.querySelectorAll('input[name="market"]');
+
+        function updateAlgoOptions() {
+            const selectedMarket = document.querySelector('input[name="market"]:checked').value;
+
+            // Remove XGBoost if it exists
+            [...algoSelect.options].forEach(option => {
+                if (option.value === "xgboost") {
+                    algoSelect.removeChild(option);
+                }
+            });
+
+            // Add XGBoost only if Kalshi is selected
+            if (selectedMarket === "kalshi") {
+                algoSelect.appendChild(kalshiOption);
+            }
+        }
+
+        // Attach event listeners to radio buttons
+        marketRadios.forEach(radio => {
+            radio.addEventListener("change", updateAlgoOptions);
+        });
+
+        // Initial call to set the correct options
+        updateAlgoOptions();
+    });
     let currentSource = 'K_'; // Default is Kalshi
     function updateMarketDropdown() {
         const marketSelect = document.getElementById("market-select");
