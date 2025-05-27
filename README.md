@@ -60,9 +60,14 @@ zipadvisors/
 └── requirements.txt
 ```
 
-
-
 Notes:
+
+Template for the batch file that you need to create to run the web scrapers for 9999 iterations:
+
+@echo off
+cd /d "<Directory to the scraper file folder>"
+<Directory to python.exe> <polymarket_scraper.py/kalshi_scraper.py> <Polymarket/Kalshi URL> 9999
+pause
 
 If you want to run locally, clone repo and switch the route on app.py. 
 
