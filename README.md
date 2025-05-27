@@ -1,7 +1,5 @@
 # ZipAdvisors
 
-# ZipAdvisors
-
 **ZipAdvisors** is a real-time arbitrage detection and analytics platform for prediction markets, focused on uncovering price discrepancies between **Kalshi** and **Polymarket**. Designed for hobbyist sports bettors, it combines high-frequency data scraping, machine learning, and advanced chart visualizations to provide actionable trading insights.
 
 ---
