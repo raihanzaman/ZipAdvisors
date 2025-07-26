@@ -19,7 +19,7 @@
 
 - **Backend**: Python, Selenium, Requests, SQLite, SQLAlchemy, XGBoost
 - **Frontend**: Flask, HTML/CSS, JavaScript, Plotly
-- **Deployment**: Scrapers run on NYU-hosted virtual machines with scheduled batch jobs, Frontend hosted on Railways
+- **Deployment**: Scrapers run on NYU-hosted virtual machines with scheduled batch jobs
 
 ---
 
