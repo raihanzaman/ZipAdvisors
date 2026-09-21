@@ -1,229 +1,161 @@
-#Make sure to download relevant dependencies: selenium, webdriver_manager, sqlalchemy
-#This script scrapes the Kalshi website for the latest prices of the markets and stores them in a database
-import time
+"""Poll Kalshi's public Trade API and write ticks.
+
+Default event is MLB World Series 2026. Selenium is not used.
+"""
+
+from __future__ import annotations
+
+import argparse
 import sys
-from sqlalchemy import create_engine, text
-import random
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import NoSuchElementException, ElementNotInteractableException
-from urllib3.exceptions import ReadTimeoutError
-from standardize_names import standardizeColumnNames
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from datetime import datetime
-from dotenv import load_dotenv
-import os
+import time
+from datetime import datetime, timezone
 
-load_dotenv()
+from db import delete_ticks, ensure_schema, insert_tick, insert_ticks, is_postgres, tick_count
+from markets import (
+    DEFAULT_EVENT_ID,
+    KALSHI_API,
+    as_float,
+    event_from_url,
+    fetch_json,
+    get_event,
+    kalshi_slug,
+)
 
-DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('DB_PASS')
-DB_NAME =os.getenv('DB_NAME')
+POLL_SECONDS = 300
+HISTORY_DAYS = 14
 
-# Function to scrape data
 
-def scrape_kalshi(url, event_id, driver, isRefreshed):
-    table_name = "K_" + event_id
-    table_name = table_name.replace("-", "_")
-    try:
-        if driver.current_url != url:
-            driver.get(url)
-        else:
-            print("Already on the desired url no need to refresh")
-    except Exception as e:
-        print("Error loading page", e)
-        return
-    wait = WebDriverWait(driver, 60)
-   
-    new_element = wait.until(
-        EC.presence_of_element_located((By.XPATH, "//div[@style='flex: 1 1 0%;']"))
-        )
-    
-    button_elements = driver.find_elements(By.XPATH, "//div[@style='flex: 1 1 0%;']")
-    try:
-        more_market_button = button_elements[-1]
-        print(more_market_button.text)
-        first_clickable = more_market_button.find_element(By.XPATH, ".//*[self::button or self::a or self::span or @role='button' or @onclick]")
-        if isRefreshed:
-            first_clickable.click()
-        time.sleep(2)
-    except NoSuchElementException as e:
-        print("No more markets button")
-    except ElementNotInteractableException as e:
-        print("More markets button not interactable")
-    except Exception as e: 
-        print("Other error", e)
+def _utc_from_unix(ts: int) -> datetime:
+    return datetime.fromtimestamp(int(ts), tz=timezone.utc)
 
-    # Find all market tiles for the event
-    markets_containers = driver.find_elements(By.XPATH, "//div[starts-with(@class, 'binaryMarketTile-0-1-')]")
 
-    print(f"Found {len(markets_containers)} markets") # Print the number of markets found
-    
-    for market in markets_containers:
-        market_name = market.find_element(By.XPATH, ".//span[contains(@class, 'lining-nums') and contains(@class, 'tabular-nums')]/div")
-        
-        #java-script to get the inner text of the element - some information is not directly accessible
-        market_name_text = standardizeColumnNames(driver.execute_script("return arguments[0].innerText;", market_name))
-    
-        buttons = market.find_elements(By.TAG_NAME, "button")
-
-        yes_price = 0.0
-        no_price = 0.0
-
-        for button in buttons: 
-            if "Yes" in button.text:
-                try:
-                    yes_price = float(button.text.split()[-1].replace('¢', '')) / 100
-                except ValueError:
-                    print("Error converting yes price to float, will put as 0", button.text.split()[-1].replace('¢', ''))
-                    yes_price = 0
-            elif "No" in button.text:
-                try:
-                    no_price = float(button.text.split()[-1].replace('¢', '')) / 100
-                except ValueError:
-                    print("Error converting yes price to float, will put as 0", button.text.split()[-1].replace('¢', ''))
-                    no_price = 0
-
-        print(f"Event: {market_name_text} | Yes: {yes_price} | No: {no_price}")
-        print("timestamp is", datetime.now())
-        # Close the driver and database connection
-        conn_string = 'mysql+pymysql://{user}:{password}@{host}:{port}/{db}?charset=utf8'.format(
-            user=f'{DB_USER}',
-            password=f'{DB_PASS}',
-            host = 'jsedocc7.scrc.nyu.edu',
-            port     = 3306,
-            encoding = 'utf-8',
-            db = f'{DB_NAME}'
-        )
-        engine = create_engine(conn_string)
-
-        with engine.begin() as conn:
-            conn.execute(text(f'''
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                market_name TEXT,
-                yes_price REAL,
-                no_price REAL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-            '''))
-
-            conn.execute(
-            text(f"""
-                INSERT INTO {table_name} (market_name, yes_price, no_price)
-                VALUES (:market_name, :yes_price, :no_price)
-            """),
+def list_kalshi_markets(event: dict) -> list[dict]:
+    data = fetch_json(f"{KALSHI_API}/markets?event_ticker={event['kalshi_event']}&limit=200")
+    rows = []
+    for market in data.get("markets") or []:
+        ticker = market.get("ticker") or ""
+        slug = kalshi_slug(ticker)
+        if not slug or slug not in event["markets"]:
+            continue
+        yes = as_float(market.get("last_price_dollars"))
+        if yes is None:
+            yes = as_float(market.get("yes_bid_dollars"))
+        if yes is None:
+            continue
+        no = as_float(market.get("no_bid_dollars"))
+        if no is None:
+            no = max(0.0, min(1.0, 1.0 - yes))
+        rows.append(
             {
-                "market_name": market_name_text,
-                "yes_price": yes_price,
-                "no_price": no_price
+                "ticker": ticker,
+                "slug": slug,
+                "yes": yes,
+                "no": no,
+                "volume": as_float(market.get("volume_fp")),
             }
-            )
-    print("Scraping completed")
-    
+        )
+    return rows
 
-def initatizeKalshiScrape(event_id, event_url, iterations, driver):
-    counter = 0
-    while counter < iterations:
-        
-        #Don't refresh too fast, page should automatically change data because it is javascript based 
-        if counter % 3 == 0:
-            try:
-                driver.refresh()
-                scrape_kalshi(event_url, event_id, driver, True)
-                counter += 1
-            except ReadTimeoutError:
-                print("Read time out error - restarting scraper")
-                driver.quit()
-                options = webdriver.ChromeOptions()
-                prefs = {
-                    "profile.managed_default_content_settings.images": 2
-                }
-                
-                options.add_experimental_option("prefs", prefs)
-                options.add_argument("--disable-blink-features=AutomationControlled")
-                options.add_argument("--headless")  # Add this line to make the browser headless
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-                driver.set_page_load_timeout(65)  # Sets a 3-minute timeout for page load.
-                scrape_kalshi(event_url, event_id, driver, True)
-                counter += 1
-            except TimeoutError as ex:
-                print("Time out exception at t-60 seconds from last printed timestamp")
-                driver.quit()
-                options = webdriver.ChromeOptions()
-                prefs = {
-                    "profile.managed_default_content_settings.images": 2
-                }
-                
-                options.add_experimental_option("prefs", prefs)
-                options.add_argument("--disable-blink-features=AutomationControlled")
-                options.add_argument("--headless")  # Add this line to make the browser headless
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-                driver.set_page_load_timeout(65)  # Sets a 3-minute timeout for page load.
-                scrape_kalshi(event_url, event_id, driver, True)
-                counter += 1
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                print("Restarting application...")
-                time.sleep(3)  # Optional: Add a delay before restarting
-                print("Time out exception at t-60 seconds from last printed timestamp")
-                driver.quit()
-                options = webdriver.ChromeOptions()
-                prefs = {
-                    "profile.managed_default_content_settings.images": 2
-                }
-                
-                options.add_experimental_option("prefs", prefs)
-                options.add_argument("--disable-blink-features=AutomationControlled")
-                options.add_argument("--headless")  # Add this line to make the browser headless
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-                driver.set_page_load_timeout(65)  # Sets a 3-minute timeout for page load.
-                scrape_kalshi(event_url, event_id, driver, True)
-                counter += 1
-        else:
-            time.sleep(10 + int(random.uniform(5,10)))
-            scrape_kalshi(event_url, event_id, driver, False)
-            counter += 1
-    driver.quit()
 
-def main():
-    if len(sys.argv) < 3:
-        print("Please provide an event url and a number of iterations (this scraper refreshes every ~30 seconds)" )
-        return
-    else:
-        event_url = ""
-        iterations = 0
+def backfill(event: dict) -> int:
+    end = int(time.time())
+    start = end - HISTORY_DAYS * 24 * 3600
+    series = event["kalshi_series"]
+    rows = []
+    markets = list_kalshi_markets(event)
+    print(f"Kalshi backfill: {len(markets)} markets, {HISTORY_DAYS}d hourly candles")
+    for i, market in enumerate(markets, start=1):
+        url = (
+            f"{KALSHI_API}/series/{series}/markets/{market['ticker']}/candlesticks"
+            f"?start_ts={start}&end_ts={end}&period_interval=60"
+        )
         try:
-            event_url = sys.argv[1]
-            iterations = int(sys.argv[2])
-            event_id = event_url.split("/")[-1]
-        except ValueError:
-            print("Please provide a valid event ID")
-        except IndexError:
-            print("Please provide a valid number of iterations")
-        except Exception as e:  
-            print("Error", e)
-        if not event_url:
-            print("Please provide a valid event ID")
-            return
-        if not iterations:
-            print("Please provide a valid number of iterations")
-        if iterations <= 0 or iterations > 9999:
-            print("Please provide a valid number of iterations, or not too many")
-            return
-    options = webdriver.ChromeOptions()
-    prefs = {
-    "profile.managed_default_content_settings.images": 2
-    }
-    options.add_experimental_option("prefs", prefs)
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--headless")  # Add this line to make the browser headless
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.set_page_load_timeout(65)  # Sets a 3-minute timeout for page load.
-    initatizeKalshiScrape(event_id, event_url, iterations, driver)
+            data = fetch_json(url)
+        except Exception as exc:
+            print(f"  skip {market['ticker']}: {exc}")
+            continue
+        for candle in data.get("candlesticks") or []:
+            price = candle.get("price") or {}
+            yes = as_float(price.get("close_dollars"))
+            if yes is None:
+                continue
+            rows.append(
+                {
+                    "venue": "kalshi",
+                    "event_id": event["id"],
+                    "market_name": market["slug"],
+                    "yes_price": yes,
+                    "no_price": max(0.0, min(1.0, 1.0 - yes)),
+                    "trading_volume": as_float(candle.get("volume_fp")),
+                    "ts": _utc_from_unix(candle["end_period_ts"]),
+                }
+            )
+        print(f"  [{i}/{len(markets)}] {market['slug']} candles={len(data.get('candlesticks') or [])}")
+        time.sleep(0.12)
+    delete_ticks(venue="kalshi", event_id=event["id"])
+    n = insert_ticks(rows)
+    print(f"Kalshi wrote {n} historical ticks")
+    return n
+
+
+def snapshot(event: dict) -> int:
+    now = datetime.now(timezone.utc)
+    count = 0
+    for market in list_kalshi_markets(event):
+        insert_tick(
+            "kalshi",
+            event["id"],
+            market["slug"],
+            market["yes"],
+            market["no"],
+            market["volume"],
+            ts=now,
+        )
+        count += 1
+        print(
+            f"kalshi {market['slug']:24} yes={market['yes']:.4f} "
+            f"vol={market['volume'] if market['volume'] is not None else 'n/a'}"
+        )
+    return count
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Kalshi API poller")
+    parser.add_argument("url", nargs="?", help="Kalshi event URL (optional)")
+    parser.add_argument("iterations", nargs="?", type=int, default=0, help="0 = run until stopped")
+    parser.add_argument("--event", default=DEFAULT_EVENT_ID)
+    parser.add_argument("--interval", type=int, default=POLL_SECONDS)
+    parser.add_argument("--skip-backfill", action="store_true")
+    parser.add_argument("--once", action="store_true", help="Backfill + one snapshot, then exit")
+    args = parser.parse_args(argv)
+    if args.url:
+        args.event = event_from_url(args.url)["id"]
+    return args
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv if argv is not None else sys.argv[1:])
+    event = get_event(args.event)
+    ensure_schema()
+    print(f"Kalshi scraper -> {event['label']} ({event['kalshi_event']})")
+    print(f"DB: {'Supabase Postgres' if is_postgres() else 'SQLite'}  ticks before: {tick_count()}")
+    if not args.skip_backfill:
+        backfill(event)
+    snapshot(event)
+    if args.once:
+        print(f"Done. ticks={tick_count(venue='kalshi', event_id=event['id'])}")
+        return
+    iterations = args.iterations if args.iterations > 0 else 10**9
+    n = 1
+    while n < iterations:
+        time.sleep(max(5, args.interval))
+        try:
+            snapshot(event)
+        except Exception as exc:
+            print(f"Kalshi snapshot failed: {exc}")
+        n += 1
+        print(f"iteration {n}/{'inf' if not args.iterations else iterations}")
+
 
 if __name__ == "__main__":
     main()

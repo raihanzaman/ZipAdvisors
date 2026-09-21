@@ -1,0 +1,22 @@
+{
+  "polymarket": {
+    "target": "polymarket",
+    "rows": 244,
+    "train_rows": 195,
+    "val_rows": 49,
+    "val_accuracy": 0.5102040816326531,
+    "val_auc": 0.42758620689655175,
+    "best_iteration": 1,
+    "horizon_bars": 5
+  },
+  "kalshi": {
+    "target": "kalshi",
+    "rows": 826,
+    "train_rows": 660,
+    "val_rows": 166,
+    "val_accuracy": 0.6265060240963856,
+    "val_auc": 0.7431686046511627,
+    "best_iteration": 30,
+    "horizon_bars": 5
+  }
+}
