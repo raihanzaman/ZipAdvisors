@@ -19,6 +19,17 @@
                 <span>EVENT</span>
                 <select id="event-select"></select>
             </label>
+            <form id="pair-form" class="pair-form">
+                <label class="top-field grow">
+                    <span>KALSHI URL</span>
+                    <input id="kalshi-url" type="url" placeholder="https://kalshi.com/markets/…/kxmlb-26" autocomplete="off">
+                </label>
+                <label class="top-field grow">
+                    <span>POLYMARKET URL</span>
+                    <input id="poly-url" type="url" placeholder="https://polymarket.com/event/…" autocomplete="off">
+                </label>
+                <button type="submit" class="pair-btn" id="pair-btn">Load pair</button>
+            </form>
             <div class="top-stat">
                 <span>LIVE GAPS</span>
                 <strong id="tradable-count">—</strong>

@@ -40,11 +40,51 @@ function yesOf(side) {
   return side.yes_mid ?? side.yes_ask ?? side.yes_bid ?? null;
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
   const data = await response.json();
   if (!response.ok || data.error) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
+}
+
+function ensureEventOption(id, label) {
+  const select = $("event-select");
+  let option = Array.from(select.options).find((row) => row.value === id);
+  if (!option) {
+    option = document.createElement("option");
+    option.value = id;
+    select.appendChild(option);
+  }
+  option.textContent = label;
+  select.value = id;
+}
+
+async function loadPair(event) {
+  event.preventDefault();
+  const kalshiUrl = $("kalshi-url").value.trim();
+  const polyUrl = $("poly-url").value.trim();
+  const btn = $("pair-btn");
+  btn.disabled = true;
+  $("status-line").textContent = "Resolving event pair from live APIs…";
+  try {
+    const resolved = await fetchJson("/api/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kalshi_url: kalshiUrl, polymarket_url: polyUrl }),
+    });
+    ensureEventOption(resolved.event_id, resolved.label);
+    selected = null;
+    await loadBoard();
+    await loadSeries();
+    const missed = (resolved.unmatched_kalshi || []).length + (resolved.unmatched_polymarket || []).length;
+    $("status-line").textContent = missed
+      ? `Loaded ${resolved.pair_count} paired contracts · ${missed} unmatched names`
+      : `Loaded ${resolved.pair_count} paired contracts from your URLs`;
+  } catch (err) {
+    $("status-line").textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function tickClock() {
@@ -235,6 +275,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (priceChart) priceChart.applyOptions({ width: $("price-chart").clientWidth });
     if (basisChart) basisChart.applyOptions({ width: $("basis-chart").clientWidth });
   });
+  $("pair-form").addEventListener("submit", loadPair);
   $("event-select").addEventListener("change", async () => {
     selected = null;
     await loadBoard();

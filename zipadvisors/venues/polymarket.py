@@ -20,7 +20,8 @@ def list_markets(event: dict) -> list[dict]:
     rows = []
     for market in payload.get("markets") or []:
         title = market.get("groupItemTitle") or ""
-        slug = polymarket_slug(title)
+        by_title = event.get("poly_by_title") or {}
+        slug = by_title.get(title.strip().lower()) or polymarket_slug(title)
         if not slug or slug not in event["markets"]:
             continue
         prices = parse_json_field(market.get("outcomePrices")) or []

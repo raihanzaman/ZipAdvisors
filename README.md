@@ -88,7 +88,7 @@ DATABASE_URL=postgresql://postgres.YOUR_REF:YOUR_PASSWORD@aws-0-YOUR_REGION.pool
 
 ## Add another event
 
-Edit `TRACKED_EVENTS` in `zipadvisors/config.py` with both venue IDs and the contract slug map.
+Edit `TRACKED_EVENTS` in `zipadvisors/config.py`, **or** paste a Kalshi event URL and a Polymarket event URL in the header and click **Load pair**. The app fetches both event APIs, matches outcome names, and scans gaps. The pair is kept in memory for this server process (~30 minutes).
 
 ## Deploy on Vercel
 
