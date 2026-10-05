@@ -3,7 +3,7 @@
   "functions": {
     "app.py": {
       "maxDuration": 60,
-      "excludeFiles": "{kalshi_scraper.py,polymarket_scraper.py,standardize_names.py,train_model.py,seed.py,data/**,**/*.bat}"
+      "excludeFiles": "{data/**,**/*.bat}"
     }
   }
 }
