@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 USER_AGENT = "ZipAdvisors/2.0 (classroom project)"
@@ -84,28 +85,44 @@ TRACKED_EVENTS: dict[str, dict[str, Any]] = {
 
 DEFAULT_EVENT_ID = "mlb_world_series_2026"
 
+CUSTOM_EVENTS: dict[str, dict[str, Any]] = {}
+
+
+def slugify_label(text: str) -> str:
+    value = (text or "").strip().lower()
+    value = re.sub(r"[^a-z0-9]+", "_", value).strip("_")
+    return value[:80]
+
+
+def register_event(event: dict[str, Any]) -> dict[str, Any]:
+    CUSTOM_EVENTS[event["id"]] = event
+    return event
+
 
 def get_event(event_id: str | None = None) -> dict[str, Any]:
     key = event_id or DEFAULT_EVENT_ID
-    event = TRACKED_EVENTS.get(key)
+    event = TRACKED_EVENTS.get(key) or CUSTOM_EVENTS.get(key)
     if event is None:
-        raise ValueError(f"Event {key!r} is not in the allowlist.")
+        raise ValueError(f"Event {key!r} is not loaded. Paste both venue URLs and click Load pair.")
     return event
 
 
 def event_catalog() -> list[dict[str, Any]]:
-    return [
-        {
-            "id": event["id"],
-            "label": event["label"],
-            "focus_markets": list(event["focus_markets"]),
-        }
-        for event in TRACKED_EVENTS.values()
-    ]
+    rows = []
+    for event in list(TRACKED_EVENTS.values()) + list(CUSTOM_EVENTS.values()):
+        rows.append(
+            {
+                "id": event["id"],
+                "label": event["label"],
+                "custom": bool(event.get("custom")),
+                "focus_markets": list(event.get("focus_markets") or []),
+            }
+        )
+    return rows
 
 
 def display_name(event_id: str, market_name: str) -> str:
-    event = TRACKED_EVENTS.get(event_id) or {}
+    event = TRACKED_EVENTS.get(event_id) or CUSTOM_EVENTS.get(event_id) or {}
     return event.get("markets", {}).get(market_name, market_name.replace("_", " ").title())
 
 
@@ -122,7 +139,7 @@ def polymarket_slug(title: str) -> str | None:
 
 
 def is_focus_market(event_id: str, market_name: str) -> bool:
-    event = TRACKED_EVENTS.get(event_id)
+    event = TRACKED_EVENTS.get(event_id) or CUSTOM_EVENTS.get(event_id)
     if event is None:
         return False
-    return market_name in set(event["focus_markets"])
+    return market_name in set(event.get("focus_markets") or [])

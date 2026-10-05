@@ -7,6 +7,7 @@ from flask import Flask, jsonify, render_template, request
 
 from zipadvisors.config import DEFAULT_EVENT_ID, event_catalog
 from zipadvisors.db import database_label, is_postgres
+from zipadvisors.resolve import resolve_pair, resolve_summary
 from zipadvisors.services import board_payload, predict_payload, series_payload
 
 ROOT = Path(__file__).resolve().parent
@@ -67,6 +68,16 @@ def health():
 @app.route("/api/events")
 def api_events():
     return jsonify({"events": event_catalog(), "default_event": DEFAULT_EVENT_ID})
+
+
+@app.route("/api/resolve", methods=["POST"])
+def api_resolve():
+    payload = request.get_json(silent=True) or {}
+    try:
+        event = resolve_pair(payload.get("kalshi_url") or "", payload.get("polymarket_url") or "")
+        return jsonify(resolve_summary(event))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
 
 
 @app.route("/api/board")

@@ -24,9 +24,10 @@ html, body {
 
 .topbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--line);
     background: #0c1014;
@@ -37,8 +38,9 @@ html, body {
 .brand-name { color: var(--amber); font-weight: 700; letter-spacing: 2px; }
 .brand-sub { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
 
-.topbar-meta { display: flex; align-items: center; gap: 16px; }
+.topbar-meta { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; flex: 1; }
 .top-field { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--muted); letter-spacing: 0.6px; }
+.top-field.grow { flex: 1; min-width: 180px; }
 .top-field select, .top-field input, #contract-filter {
     background: var(--panel-2);
     color: var(--text);
@@ -46,8 +48,24 @@ html, body {
     padding: 4px 6px;
     font-family: inherit;
     font-size: 12px;
-    min-width: 220px;
+    min-width: 160px;
+    width: 100%;
 }
+.pair-form { display: flex; align-items: flex-end; gap: 8px; flex: 1; min-width: 320px; }
+.pair-btn {
+    background: var(--amber);
+    color: #111;
+    border: 0;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    height: 28px;
+}
+.pair-btn:disabled { opacity: 0.6; cursor: wait; }
 #contract-filter { width: 100%; min-width: 0; margin-top: 6px; }
 .top-stat { text-align: right; font-size: 10px; color: var(--muted); letter-spacing: 0.6px; }
 .top-stat strong { display: block; color: var(--amber); font-size: 16px; }

@@ -20,7 +20,8 @@ def list_markets(event: dict) -> list[dict]:
     rows = []
     for market in data.get("markets") or []:
         ticker = market.get("ticker") or ""
-        slug = kalshi_slug(ticker)
+        by_ticker = event.get("kalshi_by_ticker") or {}
+        slug = by_ticker.get(ticker) or kalshi_slug(ticker)
         if not slug or slug not in event["markets"]:
             continue
         last = as_prob(market.get("last_price_dollars")) or as_prob(market.get("last_price"))
