@@ -1,7 +1,5 @@
--- ZipAdvisors ticks table for Supabase (Postgres).
--- SQL Editor → New query → Run.
--- Scrapers write live Kalshi / Polymarket ticks. Do not load synthetic seed data
--- if you are testing the allowlisted MLB markets.
+-- Optional. The live board does not require Postgres.
+-- SQL Editor → New query → Run if you want a ticks table for later persistence.
 
 create table if not exists ticks (
     id bigint generated always as identity primary key,

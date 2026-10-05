@@ -8,3 +8,5 @@ __pycache__/
 .python-version.bak
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm

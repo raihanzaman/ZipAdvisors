@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP ADVISORS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">ZIP</span>
+            <span class="brand-name">ADVISORS</span>
+            <span class="brand-sub">KALSHI × POLYMARKET</span>
+        </div>
+        <div class="topbar-meta">
+            <label class="top-field">
+                <span>EVENT</span>
+                <select id="event-select"></select>
+            </label>
+            <div class="top-stat">
+                <span>LIVE GAPS</span>
+                <strong id="tradable-count">—</strong>
+            </div>
+            <div class="top-stat">
+                <span>CONTRACTS</span>
+                <strong id="market-count">—</strong>
+            </div>
+            <div class="top-stat clock" id="clock">—</div>
+        </div>
+    </header>
+
+    <main class="layout">
+        <aside class="panel sidebar">
+            <div class="panel-head">
+                <h2>Contracts</h2>
+                <input id="contract-filter" type="search" placeholder="Filter…" autocomplete="off">
+            </div>
+            <div class="choice-row">
+                <span>SIDE</span>
+                <div class="pills">
+                    <input type="radio" id="yes" name="choice" value="yes" checked>
+                    <label for="yes">YES</label>
+                    <input type="radio" id="no" name="choice" value="no">
+                    <label for="no">NO</label>
+                </div>
+            </div>
+            <div id="contract-list" class="contract-list"></div>
+            <p class="hint" id="status-line">Pulling live quotes from Kalshi and Polymarket.</p>
+        </aside>
+
+        <section class="workspace">
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 id="price-title">YES price</h2>
+                    <div class="legend" id="price-legend"></div>
+                </div>
+                <div class="chart-wrap">
+                    <div id="price-chart" class="tv-chart"></div>
+                    <div class="chart-empty" id="price-empty">Select a contract</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Kalshi − Polymarket basis</h2>
+                    <div class="legend" id="basis-legend"></div>
+                </div>
+                <div class="chart-wrap compact">
+                    <div id="basis-chart" class="tv-chart tv-chart-secondary"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Arb board</h2>
+                    <span class="hint">Net of estimated Kalshi taker fee. Indicative if no book.</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Contract</th>
+                                <th>Kalshi</th>
+                                <th>Poly</th>
+                                <th>Basis</th>
+                                <th>Combo</th>
+                                <th>Net edge</th>
+                                <th>Book</th>
+                            </tr>
+                        </thead>
+                        <tbody id="arb-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel inspector">
+            <div class="panel-head"><h2>Selected</h2></div>
+            <div class="metric">
+                <span>Contract</span>
+                <strong id="sel-name">—</strong>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span>Kalshi YES</span>
+                    <strong id="sel-kalshi">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Poly YES</span>
+                    <strong id="sel-poly">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Basis</span>
+                    <strong id="sel-basis">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Best net</span>
+                    <strong id="sel-edge">—</strong>
+                </div>
+            </div>
+            <p class="combo-line" id="sel-combo">—</p>
+            <div class="volumes">
+                <div>Kalshi vol <span id="sel-kvol">—</span></div>
+                <div>Poly vol <span id="sel-pvol">—</span></div>
+            </div>
+
+            <div class="panel-head model-head"><h2>Spread model</h2></div>
+            <p class="hint">Forecasts whether the Kalshi–Poly gap compresses over the next ~5 hourly bars. Not an arb signal.</p>
+            <div class="metric">
+                <span>Call</span>
+                <strong id="ml-direction" class="backend-output">—</strong>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span>P(compress)</span>
+                    <strong id="ml-prob">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Leader</span>
+                    <strong id="ml-leader">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Hit rate</span>
+                    <strong id="ml-acc">—</strong>
+                </div>
+                <div class="metric">
+                    <span>Source</span>
+                    <strong id="ml-source">—</strong>
+                </div>
+            </div>
+            <label class="top-field">
+                <span>CONFIDENCE FLOOR</span>
+                <input type="number" id="threshold" min="0" max="0.45" step="0.01" value="0.08">
+            </label>
+        </aside>
+    </main>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

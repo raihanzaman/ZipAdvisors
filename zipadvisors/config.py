@@ -1,18 +1,19 @@
-"""Paired Kalshi / Polymarket events this app is allowed to chart and train on."""
+"""Allowlisted events and canonical market slugs."""
 
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
 from typing import Any
 
-USER_AGENT = "ZipAdvisors/1.0 (classroom project)"
+USER_AGENT = "ZipAdvisors/2.0 (classroom project)"
 KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
 POLY_GAMMA = "https://gamma-api.polymarket.com"
 POLY_CLOB = "https://clob.polymarket.com"
 
-# Liquid contracts used for XGBoost. Price charts still cover every paired team.
+QUOTE_TTL_SECONDS = 45
+HISTORY_TTL_SECONDS = 300
+HISTORY_DAYS = 14
+
+# Liquid names used when training the spread-convergence model.
 MLB_FOCUS = (
     "los_angeles_dodgers",
     "milwaukee_brewers",
@@ -56,7 +57,7 @@ MLB_TEAMS: dict[str, tuple[str, str]] = {
     "WSH": ("washington_nationals", "Washington Nationals"),
 }
 
-POLY_TITLE_ALIASES = {label.lower(): slug for slug, label in (row for row in MLB_TEAMS.values())}
+POLY_TITLE_ALIASES = {label.lower(): slug for slug, label in MLB_TEAMS.values()}
 POLY_TITLE_ALIASES.update(
     {
         "athletics": "athletics",
@@ -84,37 +85,6 @@ TRACKED_EVENTS: dict[str, dict[str, Any]] = {
 DEFAULT_EVENT_ID = "mlb_world_series_2026"
 
 
-def fetch_json(url: str, timeout: int = 45) -> Any:
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:300]
-        raise RuntimeError(f"HTTP {exc.code} for {url}: {detail}") from exc
-
-
-def as_float(value: Any, default: float | None = None) -> float | None:
-    if value is None or value == "":
-        return default
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def parse_json_field(value: Any) -> Any:
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            return value
-    return value
-
-
 def get_event(event_id: str | None = None) -> dict[str, Any]:
     key = event_id or DEFAULT_EVENT_ID
     event = TRACKED_EVENTS.get(key)
@@ -123,44 +93,15 @@ def get_event(event_id: str | None = None) -> dict[str, Any]:
     return event
 
 
-def event_from_url(url: str) -> dict[str, Any]:
-    lowered = (url or "").strip().lower()
-    for event in TRACKED_EVENTS.values():
-        if event["kalshi_url"].lower() in lowered or event["kalshi_event"].lower() in lowered:
-            return event
-        if event["polymarket_url"].lower() in lowered or event["polymarket_slug"].lower() in lowered:
-            return event
-    raise ValueError(
-        "URL is not a tracked event. Add it to TRACKED_EVENTS in markets.py "
-        "or pass one of: "
-        + ", ".join(e["kalshi_url"] for e in TRACKED_EVENTS.values())
-    )
-
-
 def event_catalog() -> list[dict[str, Any]]:
-    rows = []
-    for event in TRACKED_EVENTS.values():
-        rows.append(
-            {
-                "id": event["id"],
-                "label": event["label"],
-                "kalshi_key": f"K_{event['id']}",
-                "polymarket_key": f"P_{event['id']}",
-                "focus_markets": list(event["focus_markets"]),
-            }
-        )
-    return rows
-
-
-def market_catalog(event_id: str | None = None) -> list[dict[str, Any]]:
-    event = get_event(event_id)
-    focus = set(event["focus_markets"])
-    rows = [
-        {"id": slug, "label": label, "xgb": slug in focus}
-        for slug, label in event["markets"].items()
+    return [
+        {
+            "id": event["id"],
+            "label": event["label"],
+            "focus_markets": list(event["focus_markets"]),
+        }
+        for event in TRACKED_EVENTS.values()
     ]
-    rows.sort(key=lambda row: (not row["xgb"], row["label"]))
-    return rows
 
 
 def display_name(event_id: str, market_name: str) -> str:
@@ -180,7 +121,7 @@ def polymarket_slug(title: str) -> str | None:
     return POLY_TITLE_ALIASES.get(title.strip().lower())
 
 
-def is_xgb_market(event_id: str, market_name: str) -> bool:
+def is_focus_market(event_id: str, market_name: str) -> bool:
     event = TRACKED_EVENTS.get(event_id)
     if event is None:
         return False
