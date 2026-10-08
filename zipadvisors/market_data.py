@@ -15,6 +15,7 @@ from zipadvisors.config import (
     is_focus_market,
 )
 from zipadvisors.http import CACHE
+from zipadvisors.schema import cache_get_json, cache_set_json
 from zipadvisors.venues import kalshi, polymarket
 
 
@@ -22,6 +23,10 @@ def fetch_quotes(event_id: str | None = None) -> dict:
     event = get_event(event_id)
     cache_key = f"quotes:{event['id']}"
     cached = CACHE.get(cache_key)
+    if cached is None:
+        cached = cache_get_json(cache_key)
+        if cached is not None:
+            CACHE.set(cache_key, cached, QUOTE_TTL_SECONDS)
     if cached is not None:
         return cached
 
@@ -54,7 +59,9 @@ def fetch_quotes(event_id: str | None = None) -> dict:
         "markets": markets,
         "source": "live_api",
     }
-    return CACHE.set(cache_key, payload, QUOTE_TTL_SECONDS)
+    CACHE.set(cache_key, payload, QUOTE_TTL_SECONDS)
+    cache_set_json(cache_key, payload, QUOTE_TTL_SECONDS)
+    return payload
 
 
 def fetch_history(event_id: str, market_name: str) -> dict:

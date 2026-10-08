@@ -54,6 +54,8 @@ def list_markets(event: dict) -> list[dict]:
                 "yes_ask": yes_ask,
                 "no_bid": no_bid,
                 "no_ask": no_ask,
+                "yes_ask_size": as_float(market.get("yes_ask_size_fp")),
+                "yes_bid_size": as_float(market.get("yes_bid_size_fp")),
                 "volume": as_float(market.get("volume_fp")) or as_float(market.get("volume")),
                 "open_interest": as_float(market.get("open_interest_fp"))
                 or as_float(market.get("open_interest")),
