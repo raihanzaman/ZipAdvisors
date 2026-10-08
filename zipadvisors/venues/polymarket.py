@@ -56,6 +56,8 @@ def list_markets(event: dict) -> list[dict]:
                 "no_bid": no_bid,
                 "no_ask": no_ask,
                 "no_mid": no,
+                "yes_ask_size": as_float(market.get("bestAskSize") or market.get("askSize")),
+                "yes_bid_size": as_float(market.get("bestBidSize") or market.get("bidSize")),
                 "volume": as_float(market.get("volume")),
                 "liquidity": as_float(market.get("liquidity")),
                 "quality": "book" if book else "last",
